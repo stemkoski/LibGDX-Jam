@@ -3,12 +3,14 @@ import com.badlogic.gdx.math.Rectangle;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.MapProperties;
+//import com.badlogic.gdx.maps.MapProperty;
 // import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
 // import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 
@@ -22,6 +24,7 @@ public class Room
     public ArrayList<Box2DActor> wallList;
     public ArrayList<Portal> portalList;
     public HashMap<String,SpawnPoint> spawnPoints;
+    public ArrayList<DialogTrigger> dialogTriggerList;
     public ArrayList<Key> keyList;
 
     // constructor initializes Room data from TiledMap data
@@ -29,10 +32,11 @@ public class Room
     {
         tiledMap = tm;
 
-        wallList       = new ArrayList<Box2DActor>();
-        portalList     = new ArrayList<Portal>();
-        spawnPoints    = new HashMap<String,SpawnPoint>();
-        keyList        = new ArrayList<Key>();
+        wallList          = new ArrayList<Box2DActor>();
+        portalList        = new ArrayList<Portal>();
+        spawnPoints       = new HashMap<String,SpawnPoint>();
+        dialogTriggerList = new ArrayList<DialogTrigger>();
+        keyList           = new ArrayList<Key>();
 
         MapObjects objects = tiledMap.getLayers().get("ObjectData").getObjects();
         for (MapObject object : objects) 
@@ -71,6 +75,7 @@ public class Room
             {
                 Key k = new Key();
                 k.setPosition( r.x, r.y );
+                // size determined by image
                 k.setOriginCenter();
                 k.setStatic();
                 k.setSensor();
@@ -78,6 +83,27 @@ public class Room
 
                 k.setParentList(keyList); // facilitate later removal
                 keyList.add(k);
+            }
+            else if ( name.equals("DialogTrigger") )
+            {
+                DialogTrigger dt = new DialogTrigger();
+                dt.setDimensions(r);
+                dt.setStatic();
+                dt.setSensor();
+                dt.setShapeRectangle();
+                Iterator<String> keys = mp.getKeys();
+                DialogSequence ds = new DialogSequence();
+                while ( keys.hasNext() )
+                {
+                    String key = (String)keys.next();
+                    if ( key.contains("Text") )
+                        ds.add( (String)mp.get(key) );
+                    if ( key.contains("Once") )    
+                        dt.displayOnce = true;
+                }
+                dt.setDialog(ds);
+                dt.setParentList(dialogTriggerList); // facilitate later removal
+                dialogTriggerList.add(dt);
             }
             else
                 System.err.println("Unknown tilemap object: " + name);
@@ -120,6 +146,8 @@ public class Room
         for (Portal p : portalList)
             p.initializePhysics(w);
 
+        for (DialogTrigger dt : dialogTriggerList)
+            dt.initializePhysics(w);
         // visual interactive elements need to be added to the stage and world
 
         for (Key k : keyList)

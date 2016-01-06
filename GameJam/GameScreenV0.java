@@ -1,7 +1,6 @@
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.Animation;
@@ -9,13 +8,6 @@ import com.badlogic.gdx.graphics.g2d.Animation.PlayMode;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.Stack;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import com.badlogic.gdx.utils.Array;
@@ -41,7 +33,7 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 
-public class GameScreen extends BaseScreen
+public class GameScreenV0 extends BaseScreen
 {
     private Player player;
     private World physicsWorld;
@@ -62,11 +54,7 @@ public class GameScreen extends BaseScreen
     final int mapWidth  = tileSize * tileCountW;
     final int mapHeight = tileSize * tileCountH;
 
-    public DialogSequence activeDialog;
-    public Stack dialogStack;
-    public Label dialogLabel;
-
-    public GameScreen(BaseGame g)
+    public GameScreenV0(BaseGame g)
     {  super(g);  }
 
     public void create() 
@@ -82,27 +70,10 @@ public class GameScreen extends BaseScreen
         player = new Player();
         Texture playerTex = new Texture( Gdx.files.internal("assets/general-single.png") );
         player.storeAnimation("default", playerTex); 
-
-        // add directional animations
-        float t = 0.15f;
-        player.storeAnimation("down", 
-            GameUtils.parseSpriteSheet("assets/general-48.png", 3, 4, 
-                new int[] {0, 1, 2}, t, PlayMode.LOOP_PINGPONG));
-        player.storeAnimation("left", 
-            GameUtils.parseSpriteSheet("assets/general-48.png", 3, 4, 
-                new int[] {3, 4, 5}, t, PlayMode.LOOP_PINGPONG));
-        player.storeAnimation("right", 
-            GameUtils.parseSpriteSheet("assets/general-48.png", 3, 4, 
-                new int[] {6, 7, 8}, t, PlayMode.LOOP_PINGPONG));
-        player.storeAnimation("up", 
-            GameUtils.parseSpriteSheet("assets/general-48.png", 3, 4, 
-                new int[] {9, 10, 11}, t, PlayMode.LOOP_PINGPONG));
-        player.setSize(48,48);
-
         mainStage.addActor(player);
 
         player.setDynamic();
-        player.setShapeCircle();
+        player.setShapeRectangle();
         player.setPhysicsProperties(1, 0.5f, 0.0f);
         player.setDamping(10);
         player.setMaxSpeedX(1);
@@ -137,8 +108,6 @@ public class GameScreen extends BaseScreen
 
         // contact listener manages interactions
 
-        DialogSequence keyDS = new DialogSequence("You found a key!");
-        
         physicsWorld.setContactListener(
             new ContactListener() 
             {
@@ -156,25 +125,6 @@ public class GameScreen extends BaseScreen
                         Portal portal = (Portal)other;
                         destination = portal;
                     }
-                    else if (other instanceof Key)
-                    {
-                        Key key = (Key)other;
-                        activeDialog = keyDS;
-                        activeDialog.initialize();
-                        dialogStack.setVisible(true);
-                        dialogLabel.setText( activeDialog.next() );
-                        removeList.add(key);
-                    }
-                    else if (other instanceof DialogTrigger)
-                    {
-                        DialogTrigger dt = (DialogTrigger)other;
-                        activeDialog = dt.getDialog();
-                        activeDialog.initialize();
-                        dialogStack.setVisible(true);
-                        dialogLabel.setText( activeDialog.next() );
-                        if (dt.displayOnce)
-                            removeList.add(dt);
-                    }
                 }
 
                 public void endContact(Contact contact) 
@@ -185,57 +135,10 @@ public class GameScreen extends BaseScreen
                 public void postSolve(Contact contact, ContactImpulse impulse) { }
             });
 
-        // dialog stuff
-
-        // uiStage, contains dialogStack, with two layers:
-        //   1: dialogTable, with NinePatch background and Label dialogLabel
-        //   2: buttonTable, with an image of a button in the lower right corner
-        dialogStack = new Stack();
-        uiTable.add().expandY();
-        uiTable.row();
-        uiTable.add( dialogStack ).width(600).padBottom(8); // leaves 32px border on left&right
-
-        Table dialogTable = new Table();
-        dialogTable.background( game.skin.newDrawable("dialogTex", 
-                new Color(1.0f,1.0f,1.0f,0.8f)) );
-        dialogLabel = new Label("...", game.skin, "uiLabelStyle");
-        dialogLabel.setWrap(true);
-        dialogTable.add( dialogLabel ).width(500);
-        
-        dialogStack.add( dialogTable );
-        
-        Table buttonTable = new Table();
-        buttonTable.setFillParent(true);
-        Texture keyTex = new Texture(Gdx.files.internal("assets/key-C.png"));
-        keyTex.setFilter(TextureFilter.Linear, TextureFilter.Linear);
-        Image dialogKey = new Image(keyTex);
-        dialogKey.setOrigin(16,16);
-        // add subtle pulsing action to draw player's attention
-        dialogKey.addAction(
-            Actions.forever(
-                Actions.sequence(
-                    Actions.scaleTo(1.1f, 1.1f, 0.5f),
-                    Actions.scaleTo(1.0f, 1.0f, 0.5f),
-                    Actions.delay(0.5f)
-                )
-            )
-        );
-        buttonTable.add(dialogKey).width(32).height(32).expandX().right().expandY().bottom();
-        
-        dialogStack.add( buttonTable );
-
-        activeDialog = null;
-        dialogStack.setVisible(false);
     }
 
     public void update(float dt) 
     {   
-        if (activeDialog != null)
-        {
-            player.pauseAnimation();
-            // player.setVelocity(0,0); // no effect? seems to continue moving after resume
-            return;
-        }   
         removeList.clear();
         physicsWorld.step(1/60f, 6, 2);
 
@@ -270,7 +173,7 @@ public class GameScreen extends BaseScreen
             player.initializePhysics(physicsWorld);
             player.moveToOrigin(sp);
             player.updateBodyPosition();
-            player.toFront();
+
             destination = null;
         }
 
@@ -288,20 +191,8 @@ public class GameScreen extends BaseScreen
             player.applyForce( new Vector2(0, 3.0f) );
         if( Gdx.input.isKeyPressed(Keys.DOWN) )
             player.applyForce( new Vector2(0, -3.0f) );
-
-        // change animation based on overall angle of movement
-        if ( player.getSpeed() > 0.01 )
-        {
-            player.setActiveAnimation( player.getMotionName() );
-            player.startAnimation();
-        }
-        else
-        {
-            player.pauseAnimation();
-            player.setAnimationFrame(1);
-        }   
-
     }
+
     // this is the gameloop. update, then render.
     public void render(float dt) 
     {
@@ -327,35 +218,12 @@ public class GameScreen extends BaseScreen
 
     public boolean keyDown(int keycode)
     {
-        // if (keycode == Keys.P)    
-        //     togglePaused();
+        if (keycode == Keys.P)    
+            togglePaused();
 
         if (keycode == Keys.R)    
-            game.setScreen( new GameScreen(game) );
-
-        if (keycode == Keys.Q) // debug toggle visibility
-        {
-            if (dialogStack.isVisible())
-                dialogStack.setVisible(false);
-            else
-                dialogStack.setVisible(true);
-        }
-
-        if (keycode == Keys.C && activeDialog != null)
-        {
-            if (activeDialog.hasNext())
-            {
-                dialogLabel.setText( activeDialog.next() );
-            }
-            else
-            {
-                dialogStack.setVisible(false);
-                activeDialog = null;
-            }
-        }
+            game.setScreen( new GameScreenV0(game) );
 
         return false;
     }
-
-    
 }

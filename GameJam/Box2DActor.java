@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.MathUtils;
 
+
 public class Box2DActor extends AnimatedActor
 {
     // body definition - used to initialize body
@@ -122,7 +123,7 @@ public class Box2DActor extends AnimatedActor
     {  body.applyLinearImpulse(impulse, body.getPosition(), true);  }
 
     public Vector2 getVelocity()
-    {  return body.getLinearVelocity();  }
+    {  return body.getLinearVelocity(); }
 
     public float getSpeed()
     {  return getVelocity().len();  }
@@ -136,6 +137,22 @@ public class Box2DActor extends AnimatedActor
     public void setSpeed(float s)
     {  setVelocity( getVelocity().setLength(s) );  }
 
+    public float getMotionAngle()
+    {  return (float)Math.atan2( getVelocity().y, getVelocity().x );  }
+    
+    public String getMotionName()
+    {
+        float a = getMotionAngle();
+        if (-0.25f * MathUtils.PI <= a && a <= 0.25f * MathUtils.PI)
+            return "right";
+        else if (0.25f * MathUtils.PI < a && a < 0.75f * MathUtils.PI)
+            return "up";
+        else if (-0.75f * MathUtils.PI < a && a < -0.25f * MathUtils.PI)
+            return "down";
+        else // (a > 0.75f * MathUtils.PI || a < -0.75f * MathUtils.PI)
+            return "left";
+    }
+    
     public void act(float dt) 
     {
         super.act(dt);

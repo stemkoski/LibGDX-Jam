@@ -10,6 +10,8 @@ public class AnimatedActor extends BaseActor
     private Animation activeAnim;
     private String activeName;
     private HashMap<String,Animation> animationStorage;
+
+    private boolean pauseAnim;
     
     public AnimatedActor()
     {
@@ -18,6 +20,7 @@ public class AnimatedActor extends BaseActor
         activeAnim = null;
         activeName = null;
         animationStorage = new HashMap<String,Animation>();
+        pauseAnim = false;
     }
 
     public void storeAnimation(String name, Animation anim)
@@ -26,7 +29,7 @@ public class AnimatedActor extends BaseActor
         if (activeName == null)
             setActiveAnimation(name);
     }
-    
+
     public void storeAnimation(String name, Texture tex)
     {
         TextureRegion reg = new TextureRegion(tex);
@@ -34,7 +37,7 @@ public class AnimatedActor extends BaseActor
         Animation anim = new Animation(1.0f, frames);
         storeAnimation(name, anim);
     }
-    
+
     public void setActiveAnimation(String name)
     {
         if ( !animationStorage.containsKey(name) )
@@ -42,9 +45,10 @@ public class AnimatedActor extends BaseActor
             System.out.println("No animation: " + name);
             return;
         }
-            
+
+        // if this animation is already playing; no need to change...
         if ( name.equals(activeName) )
-            return; // already playing; no need to change...
+            return; 
         
         activeName = name;
         activeAnim = animationStorage.get(name);
@@ -58,16 +62,26 @@ public class AnimatedActor extends BaseActor
             setHeight( tex.getHeight() );
         }
     }
-    
+
     public String getAnimationName()
     {  
         return activeName;  
     }
 
+    public void pauseAnimation()
+    {  pauseAnim = true;  }
+    
+    public void startAnimation()
+    {  pauseAnim = false;  }
+    
+    public void setAnimationFrame(int n)
+    {  elapsedTime = n * activeAnim.getFrameDuration();  }
+    
     public void act(float dt)
     {
         super.act( dt );
-        elapsedTime += dt;
+        if (!pauseAnim)
+            elapsedTime += dt;
     }
 
     public void draw(Batch batch, float parentAlpha) 
@@ -75,7 +89,7 @@ public class AnimatedActor extends BaseActor
         region.setRegion( activeAnim.getKeyFrame(elapsedTime) );
         super.draw(batch, parentAlpha);
     }
-    
+
     public void copy(AnimatedActor original)
     {
         super.copy(original);
@@ -90,5 +104,5 @@ public class AnimatedActor extends BaseActor
         AnimatedActor newbie = new AnimatedActor();
         newbie.copy( this );
         return newbie;
-    }	
+    }   
 }
